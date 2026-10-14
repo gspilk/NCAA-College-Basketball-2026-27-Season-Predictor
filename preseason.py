@@ -76,8 +76,10 @@ def all_season_ratings(data: dict) -> pd.DataFrame:
 def conference_changes() -> pd.DataFrame:
     """
     Realignment you enter by hand (Kaggle's conference list stops at the
-    last completed season). Columns: TeamName, NewConf  -- NewConf uses
-    Kaggle's conference abbreviations (e.g. big_ten, acc, wcc).
+    last completed season). Columns: TeamName, NewConf
+      TeamName  common names work ("Little Rock", "Northern Illinois", "UConn")
+      NewConf   Kaggle's conference code (e.g. pac_twelve, mwc, big_west), or
+                "none" for a team leaving Division I
     """
     if not os.path.exists(CHANGES_CSV):
         pd.DataFrame(columns=["TeamName", "NewConf"]).to_csv(CHANGES_CSV, index=False)
@@ -86,22 +88,37 @@ def conference_changes() -> pd.DataFrame:
     return pd.read_csv(CHANGES_CSV)
 
 
+LEAVING = {"none", "leaving", "d2", "d3", "non-d1"}
+
+
 def membership(data: dict, season: int) -> pd.Series:
     """TeamID -> conference for a season (latest known + your changes for a future season)."""
+    from schedule import name_lookup, _norm
     conf = data["conferences"]
     have = sorted(conf["Season"].unique())
     if season in have:
         return conf[conf["Season"] == season].set_index("TeamID")["ConfAbbrev"]
     m = conf[conf["Season"] == have[-1]].set_index("TeamID")["ConfAbbrev"].copy()
     changes = conference_changes()
-    if not changes.empty:
-        ids = data["teams"].set_index("TeamName")["TeamID"]
-        for r in changes.itertuples():
-            if r.TeamName in ids.index:
-                m.loc[ids[r.TeamName]] = r.NewConf
-            else:
-                print(f"  [warn] conference_changes.csv: unknown team '{r.TeamName}' "
-                      f"(use the exact name from MTeams.csv)")
+    if changes.empty:
+        return m
+    gender = "W" if data["teams"]["TeamID"].min() >= 3000 else "M"
+    lookup = name_lookup(data, gender)
+    known_confs = set(conf["ConfAbbrev"])
+    for r in changes.itertuples():
+        new_conf = str(r.NewConf).strip()
+        team = lookup.get(_norm(r.TeamName))
+        if team is None:
+            print(f"  [warn] conference_changes.csv: '{r.TeamName}' isn't in the Kaggle data "
+                  f"(a team new to Division I, or a different spelling) -- skipped")
+            continue
+        if new_conf.lower() in LEAVING:
+            m = m.drop(team, errors="ignore")
+            continue
+        if new_conf not in known_confs:
+            print(f"  [warn] conference_changes.csv: unknown conference code '{new_conf}' for "
+                  f"{r.TeamName} -- check MConferences.csv for the right code")
+        m.loc[team] = new_conf
     return m
 
 
