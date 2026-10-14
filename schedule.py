@@ -50,9 +50,10 @@ SCHEDULE_DIR = os.path.join(ROOT, "data", "schedule")
 
 # Tuned so a generated 2025-26 schedule matches the real one (python schedule.py --check 2026)
 TOTAL_GAMES = 30              # Division I games per team before conference tournaments
-CONF_GAMES_LARGE = 20         # conference games for big conferences
+CONF_GAMES_LARGE = 20         # conference games for big conferences (generated schedules)
+MIN_COMPLETE_CONF_GAMES = 16  # a real conference slate counts as complete at this many games per team
 NEUTRAL_SHARE = 0.33          # share of similar-strength non-conference games at neutral sites
-SIMILAR_NOISE = 14.0           # how loosely "similar strength" opponents are matched (points)
+SIMILAR_NOISE = 14.0          # how loosely "similar strength" opponents are matched (points)
 CONF_START_DAY = 60           # roughly early January in Kaggle's DayNum
 
 
@@ -165,10 +166,12 @@ def generate_schedule(conferences: pd.Series, strength: pd.Series, season: int,
     # conference games: keep a conference's real slate only if it's complete
     for conf, members in conferences.groupby(conferences):
         teams = members.index.to_list()
-        expected = min(2 * (len(teams) - 1), max(CONF_GAMES_LARGE, len(teams) - 1))
+        # "complete" = every team has at least 16 conference games (real slates run 16-20),
+        # or the full double round robin for small conferences (e.g. 8 teams -> 14)
+        expected = min(2 * (len(teams) - 1), MIN_COMPLETE_CONF_GAMES)
         real = fixed[fixed["ConfGame"] & fixed["HomeID"].isin(teams) & fixed["AwayID"].isin(teams)]
         counts = pd.concat([real["HomeID"], real["AwayID"]]).value_counts().reindex(teams).fillna(0)
-        if len(real) and (counts >= expected - 1).all():
+        if len(real) and (counts >= expected).all():
             continue                                    # real slate is complete
         if len(real):
             fixed = fixed.drop(real.index)              # incomplete: replace with generated
