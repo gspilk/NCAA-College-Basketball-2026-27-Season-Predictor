@@ -5,14 +5,16 @@ Step 5: the regular-season schedule the season simulator plays out.
 Two sources:
 
   REAL (for the actual prediction) -- a CSV you fill in from schedules you
-  collect (school athletics sites, team calendar downloads):
+  collect (conference composite schedules, school athletics sites):
       data/schedule/M_schedule_2027.csv      (W_ for women's)
-      Date,Home,Away,Neutral
-      2026-11-03,Duke,Army,N
-      2026-11-28,Gonzaga,Kentucky,Y
-  Team names are matched with Kaggle's spellings file, so "UConn",
-  "Connecticut" and "St. John's" all work. Unrecognized opponents are
-  listed and skipped (usually non-Division I teams).
+      Date,Team,Opponent,Site                one row per team per game
+      11-23,Duke,North Carolina,H            Site: H home, A away, N neutral
+      11-23,North Carolina,Duke,A
+  (or Date,Home,Away,Neutral, one row per game). The same game entered from
+  both sides is counted once. Dates may leave off the year. Team names are
+  matched with Kaggle's spellings file, so "UConn", "Connecticut" and
+  "St. John's" all work. Unrecognized opponents are listed and skipped
+  (usually non-Division I teams).
 
   GENERATED (for testing, and to fill gaps) -- a realistic schedule built
   from conference memberships:
@@ -62,7 +64,30 @@ CONF_START_DAY = 60           # roughly early January in Kaggle's DayNum
 # ---------------------------------------------------------------------------
 
 def _norm(name: str) -> str:
-    return re.sub(r"[^a-z0-9 ]", "", str(name).lower().replace("&", " and ")).strip()
+    text = re.sub(r"[^a-z0-9 ]", " ", str(name).lower().replace("&", " and ").replace("'", ""))
+    return re.sub(r"\s+", " ", text).strip()
+
+
+def _variants(name: str) -> list:
+    """Common alternate spellings to try when a name isn't found as typed."""
+    n = _norm(name)
+    out = [n]
+    for a, b in [(r"\bstate\b", "st"), (r"\bsaint\b", "st"), (r"\bst\b", "saint"),
+                 (r"\bmount\b", "mt"), (r"^the ", ""), (r"\buniversity\b", ""),
+                 (r"\bnorth carolina\b", "nc"), (r"\bsouth carolina\b", "sc")]:
+        m = re.sub(r"\s+", " ", re.sub(a, b, n)).strip()
+        if m not in out:
+            out.append(m)
+    both = re.sub(r"\bsaint\b", "st", re.sub(r"\bstate\b", "st", n))
+    out.append(re.sub(r"\bmount\b", "mt", both))
+    return out
+
+
+def find_team(lookup: dict, name):
+    for v in _variants(name):
+        if v in lookup:
+            return lookup[v]
+    return None
 
 
 def name_lookup(data: dict, gender: str = "M") -> dict:
@@ -73,6 +98,8 @@ def name_lookup(data: dict, gender: str = "M") -> dict:
         sp = pd.read_csv(path, encoding="latin-1")
         for n, t in zip(sp.iloc[:, 0], sp.iloc[:, 1]):
             lookup.setdefault(_norm(n), int(t))
+    lookup.setdefault("miami", lookup.get("miami fl"))      # Miami alone = Miami (FL)
+    lookup = {k: v for k, v in lookup.items() if v is not None}
     return lookup
 
 
@@ -201,39 +228,102 @@ def generate_schedule(conferences: pd.Series, strength: pd.Series, season: int,
 # Real schedule CSV
 # ---------------------------------------------------------------------------
 
+def _parse_date(value, season: int):
+    """'2026-11-23', '11/23/2026', or no year at all ('11-23', '11/23'):
+    July-December belong to the first calendar year of the season, January-June to the second."""
+    text = str(value).strip()
+    parts = [x for x in re.split(r"[-/]", text) if x]
+    if len(parts) == 2 and all(x.isdigit() for x in parts):
+        month, day = int(parts[0]), int(parts[1])
+        year = season - 1 if month >= 7 else season
+        return pd.Timestamp(year=year, month=month, day=day)
+    if len(parts) == 3 and all(x.isdigit() for x in parts) and len(parts[0]) <= 2:
+        month, day, year = map(int, parts)
+        return pd.Timestamp(year=year + 2000 if year < 100 else year, month=month, day=day)
+    return pd.to_datetime(text, errors="coerce")
+
+
 def read_real_schedule(data: dict, conferences: pd.Series, season: int, gender: str = "M",
                        path: str = None) -> pd.DataFrame:
+    """
+    Two layouts work (one per file):
+      Date,Home,Away,Neutral      -- one row per game; Neutral = Y/N
+      Date,Team,Opponent,Site     -- one row per team per game, copied from each
+                                     team's schedule; Site = H (home), A (away), N (neutral)
+    Dates can leave off the year (11-23). The same game entered from both teams'
+    sides is counted once; if the two rows disagree about the location, you're warned.
+    """
     path = path or os.path.join(SCHEDULE_DIR, f"{gender}_schedule_{season}.csv")
     cols = ["HomeID", "AwayID", "Neutral", "ConfGame", "DayNum"]
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
-        pd.DataFrame(columns=["Date", "Home", "Away", "Neutral"]).to_csv(path, index=False)
-        print(f"  [info] created {path} -- add real games there (Date,Home,Away,Neutral)")
+        pd.DataFrame(columns=["Date", "Team", "Opponent", "Site"]).to_csv(path, index=False)
+        print(f"  [info] created {path} -- add real games there (Date,Team,Opponent,Site)")
         return pd.DataFrame(columns=cols)
-    raw = pd.read_csv(path)
+    raw = pd.read_csv(path, dtype=str, sep=None, engine="python").dropna(how="all")   # commas or tabs
+    raw.columns = [c.strip() for c in raw.columns]
     if raw.empty:
         print(f"  [info] {os.path.basename(path)} is empty -- using a fully generated schedule")
         return pd.DataFrame(columns=cols)
 
     lookup = name_lookup(data, gender)
-    raw["HomeID"] = raw["Home"].map(lambda n: lookup.get(_norm(n)))
-    raw["AwayID"] = raw["Away"].map(lambda n: lookup.get(_norm(n)))
-    unknown = sorted(set(raw.loc[raw["HomeID"].isna(), "Home"]) | set(raw.loc[raw["AwayID"].isna(), "Away"]))
-    if unknown:
-        print(f"  [info] skipped games vs {len(unknown)} unrecognized teams (usually non-Division I): "
-              + ", ".join(map(str, unknown[:10])) + (" ..." if len(unknown) > 10 else ""))
-    raw = raw.dropna(subset=["HomeID", "AwayID"])
+    ident = lambda n: find_team(lookup, n)
+
+    if {"Team", "Opponent", "Site"} <= set(raw.columns):          # one row per team per game
+        raw["TeamID"] = raw["Team"].map(ident)
+        raw["OppID"] = raw["Opponent"].map(ident)
+        bad_team = sorted(set(raw.loc[raw["TeamID"].isna(), "Team"].dropna()))
+        if bad_team:
+            print(f"  [warn] not recognized in the Team column (check the spelling): {', '.join(bad_team)}")
+        site = raw["Site"].astype(str).str.strip().str.upper().str[0]
+        bad_site = raw.loc[~site.isin(["H", "A", "N"]), "Site"].unique()
+        if len(bad_site):
+            print(f"  [warn] Site must be H, A or N -- skipped rows with: {', '.join(map(str, bad_site))}")
+        raw = raw[site.isin(["H", "A", "N"])].copy()
+        site = site[raw.index]
+        away = site.eq("A")
+        raw["HomeID"] = np.where(away, raw["OppID"], raw["TeamID"])
+        raw["AwayID"] = np.where(away, raw["TeamID"], raw["OppID"])
+        raw["Neutral"] = site.eq("N")
+        unknown_opp = sorted(set(raw.loc[raw["OppID"].isna() & raw["TeamID"].notna(), "Opponent"].dropna()))
+    elif {"Home", "Away"} <= set(raw.columns):                      # one row per game
+        raw["HomeID"] = raw["Home"].map(ident)
+        raw["AwayID"] = raw["Away"].map(ident)
+        raw["Neutral"] = raw.get("Neutral", "N").astype(str).str.strip().str.upper().str.startswith("Y")
+        unknown_opp = sorted(set(raw.loc[raw["HomeID"].isna(), "Home"].dropna())
+                             | set(raw.loc[raw["AwayID"].isna(), "Away"].dropna()))
+    else:
+        print(f"  [warn] {os.path.basename(path)} needs columns Date,Team,Opponent,Site "
+              f"(or Date,Home,Away,Neutral) -- found {list(raw.columns)}")
+        return pd.DataFrame(columns=cols)
+
+    if unknown_opp:
+        print(f"  [info] skipped games vs {len(unknown_opp)} unrecognized opponents (usually non-Division I): "
+              + ", ".join(map(str, unknown_opp[:10])) + (" ..." if len(unknown_opp) > 10 else ""))
+    raw = raw.dropna(subset=["HomeID", "AwayID"]).copy()
     raw["HomeID"] = raw["HomeID"].astype(int)
     raw["AwayID"] = raw["AwayID"].astype(int)
-    # the same game often appears in both teams' lists -- keep it once
+    raw["_date"] = pd.to_datetime(pd.Series([_parse_date(d, season) for d in raw["Date"]],
+                                            index=raw.index, dtype="object"), errors="coerce")
+    bad_dates = raw.loc[raw["_date"].isna(), "Date"].unique()
+    if len(bad_dates):
+        print(f"  [warn] couldn't read these dates (rows skipped): {', '.join(map(str, bad_dates[:10]))}")
+    raw = raw.dropna(subset=["_date"])
+
+    # the same game from both teams' sides: keep it once, warn if they disagree on location
     raw["_pair"] = [tuple(sorted(x)) for x in zip(raw["HomeID"], raw["AwayID"])]
-    raw = raw.drop_duplicates(subset=["Date", "_pair"]).drop(columns="_pair")
-    raw["Neutral"] = raw["Neutral"].astype(str).str.upper().str.startswith("Y")
+    names = data["teams"].set_index("TeamID")["TeamName"]
+    for (date, pair), grp in raw.groupby(["_date", "_pair"]):
+        views = set(zip(grp["HomeID"], grp["Neutral"]))
+        if len(grp) > 1 and len(views) > 1 and not grp["Neutral"].all():
+            print(f"  [warn] {date:%Y-%m-%d} {names.get(pair[0])} vs {names.get(pair[1])}: "
+                  f"the two rows disagree on home/away/neutral -- the first row is used")
+    raw = raw.drop_duplicates(subset=["_date", "_pair"])
+
     raw["ConfGame"] = raw["HomeID"].map(conferences).eq(raw["AwayID"].map(conferences)) & \
         raw["HomeID"].map(conferences).notna()
-    dates = pd.to_datetime(raw["Date"], errors="coerce")
-    start = dates.min()
-    raw["DayNum"] = ((dates - start).dt.days + 7).fillna(60).astype(int)
+    start = raw["_date"].min()
+    raw["DayNum"] = ((raw["_date"] - start).dt.days + 7).astype(int)
     print(f"  [ok] {len(raw)} real games for "
           f"{len(set(raw['HomeID']) | set(raw['AwayID']))} teams")
     return raw[cols].reset_index(drop=True)
