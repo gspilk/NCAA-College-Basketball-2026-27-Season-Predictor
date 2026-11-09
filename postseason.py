@@ -18,8 +18,10 @@ better than expected in the regular season is better in March too.
    seeds (S-curve). `python postseason.py --fit` shows how well it matches.
 
 3. NCAA TOURNAMENT
-   31 automatic bids + at-large bids = 68 teams. First Four: the last four
-   at-large teams and the four lowest-rated automatic qualifiers. Seeds go
+   76 teams (2026-27 format): one automatic bid per conference + at-large
+   bids. Opening Round (12 games, 24 teams): the last 12 at-large teams and
+   the 12 lowest-rated automatic qualifiers play in, paired in order, and the
+   12 winners join the 52 teams with byes in the 64-team bracket. Seeds go
    into four regions by S-curve. Men's: all neutral sites. Women's: seeds
    1-4 host the first two rounds.
 
@@ -42,7 +44,9 @@ from ratings import GAME_SD
 ROOT = os.path.dirname(os.path.abspath(__file__))
 OUT_DIR = os.path.join(ROOT, "data", "sims")
 INELIGIBLE_CSV = os.path.join(ROOT, "ineligible_teams.csv")
-FIELD_SIZE = 68
+FIELD_SIZE = 76            # 2026-27 expansion (was 68)
+OPENING_AT_LARGE = 12      # last at-large teams in the Opening Round (was 4)
+OPENING_AUTO = 12          # lowest-rated automatic qualifiers in the Opening Round (was 4)
 OBS_SD = 2.0               # how far a measured end-of-season rating is from true strength
 HOST_LINES = {"M": 0, "W": 4}
 REGION_ORDER = [1, 16, 8, 9, 5, 12, 4, 13, 6, 11, 3, 14, 7, 10, 2, 15]
@@ -214,7 +218,7 @@ def committee_settings(data: dict, gender: str, refit: bool = False) -> dict:
 
 
 def select_field(res: dict, champs: np.ndarray, C: float, ineligible: set, rng):
-    """Returns (score, field order sims x 68, at-large flag sims x 68)."""
+    """Returns (score, field order sims x FIELD_SIZE, at-large flag sims x FIELD_SIZE)."""
     strength, teams = res["strength"], res["teams"]
     sims, n_t = strength.shape
     games = (res["wins"] + res["losses"]).astype(float)
@@ -247,7 +251,7 @@ def select_field(res: dict, champs: np.ndarray, C: float, ineligible: set, rng):
 def build_brackets(forder: np.ndarray, al_flag: np.ndarray, score: np.ndarray):
     """
     Returns pos_a, pos_b (sims x 64): team at each bracket position, with pos_b
-    the second team when that position is a First Four game (else -1), and the
+    the second team when that position is an Opening Round game (else -1), and the
     seed line of each position.
     """
     sims = forder.shape[0]
@@ -256,13 +260,12 @@ def build_brackets(forder: np.ndarray, al_flag: np.ndarray, score: np.ndarray):
     pos_b = np.full((sims, 64), -1)
     for s in range(sims):
         teams, al = forder[s], al_flag[s]
-        last_al = [i for i in range(FIELD_SIZE - 1, -1, -1) if al[i]][:4]
-        last_auto = [i for i in range(FIELD_SIZE - 1, -1, -1) if not al[i]][:4]
+        last_al = sorted([i for i in range(FIELD_SIZE - 1, -1, -1) if al[i]][:OPENING_AT_LARGE])
+        last_auto = sorted([i for i in range(FIELD_SIZE - 1, -1, -1) if not al[i]][:OPENING_AUTO])
         pair_of = {}
-        for group in (sorted(last_al), sorted(last_auto)):
-            if len(group) == 4:
-                pair_of[group[0]] = group[1]
-                pair_of[group[2]] = group[3]
+        for group in (last_al, last_auto):
+            for j in range(0, len(group) - 1, 2):      # best two meet, next two meet, ...
+                pair_of[group[j]] = group[j + 1]
         skip = set(pair_of.values())
         entries = [i for i in range(FIELD_SIZE) if i not in skip][:64]
         for r, i in enumerate(entries):
@@ -281,7 +284,7 @@ def play_tournament(pos_a, pos_b, line_of_pos, strength, rng, home_court: float,
     sims = pos_a.shape[0]
     rows = np.arange(sims)[:, None]
     reach = np.zeros((n_teams, 7))
-    # First Four
+    # Opening Round
     ff = pos_b >= 0
     w, _ = _play(pos_a, np.where(ff, pos_b, -1), strength, rng)
     field = w

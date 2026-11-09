@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Season Calendar</title>
+<style>
+:root {
+  --bg: #f6f5f1; --panel: #ffffff; --ink: #1d1c1a; --muted: #6b6860; --line: #e2dfd7;
+  --accent: #c2410c; --accent-soft: #fbe7dc; --win: #2f7d4f; --lose: #b4432f; --chip: #efede7;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #161513; --panel: #201f1c; --ink: #ecebe6; --muted: #9c998f; --line: #34322d;
+    --accent: #f08a4b; --accent-soft: #3a261b; --win: #5cbf85; --lose: #e2735d; --chip: #2a2925;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #161513; --panel: #201f1c; --ink: #ecebe6; --muted: #9c998f; --line: #34322d;
+  --accent: #f08a4b; --accent-soft: #3a261b; --win: #5cbf85; --lose: #e2735d; --chip: #2a2925;
+}
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--bg); color: var(--ink);
+  font: 14px/1.4 system-ui, -apple-system, "Segoe UI", sans-serif; }
+.wrap { max-width: 1180px; margin: 0 auto; padding: 20px 16px 48px; }
+h1 { font-size: 22px; margin: 0 0 4px; letter-spacing: -0.01em; }
+.sub { color: var(--muted); margin: 0 0 18px; }
+.bar { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 14px; }
+input, select, button { font: inherit; color: var(--ink); background: var(--panel);
+  border: 1px solid var(--line); border-radius: 8px; padding: 7px 10px; }
+button { cursor: pointer; }
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+#team { min-width: 220px; }
+.month-nav { display: flex; align-items: center; gap: 8px; margin-left: auto; }
+.month-nav strong { min-width: 140px; text-align: center; font-size: 16px; }
+.layout { display: grid; grid-template-columns: minmax(0, 1fr) 360px; gap: 16px; }
+.cal { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; overflow: hidden; }
+.dow, .grid { display: grid; grid-template-columns: repeat(7, minmax(0, 1fr)); }
+.dow div { padding: 8px; font-size: 12px; color: var(--muted); text-transform: uppercase;
+  letter-spacing: .05em; border-bottom: 1px solid var(--line); }
+.day { min-height: 104px; padding: 6px; border-right: 1px solid var(--line);
+  border-bottom: 1px solid var(--line); cursor: pointer; overflow: hidden; }
+.day:nth-child(7n) { border-right: 0; }
+.day.out { background: var(--bg); color: var(--muted); cursor: default; }
+.day.sel { outline: 2px solid var(--accent); outline-offset: -2px; }
+.day .num { font-size: 12px; font-weight: 600; display: flex; justify-content: space-between; }
+.day .count { color: var(--muted); font-weight: 400; }
+.mini { font-size: 11.5px; margin-top: 3px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mini.team { background: var(--accent-soft); border-radius: 6px; padding: 4px 5px; white-space: normal; }
+.side { background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 14px;
+  align-self: start; position: sticky; top: 12px; max-height: calc(100vh - 24px); overflow: auto; }
+.side h2 { font-size: 16px; margin: 0 0 2px; }
+.side .meta { color: var(--muted); margin-bottom: 12px; }
+.game { padding: 9px 0; border-top: 1px solid var(--line); }
+.game .row { display: flex; justify-content: space-between; gap: 8px; }
+.game .tag { font-size: 11px; color: var(--muted); }
+.prob { height: 6px; border-radius: 3px; background: var(--chip); margin-top: 6px; overflow: hidden; display: flex; }
+.prob span { display: block; height: 100%; }
+.w { color: var(--win); font-weight: 600; } .l { color: var(--lose); font-weight: 600; }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 12px; }
+.stat { background: var(--chip); border-radius: 8px; padding: 8px; }
+.stat b { display: block; font-size: 18px; }
+.stat small { color: var(--muted); }
+.empty { color: var(--muted); padding: 12px 0; }
+@media (max-width: 860px) {
+  .layout { grid-template-columns: 1fr; }
+  .side { position: static; max-height: none; }
+  .month-nav { margin-left: 0; width: 100%; justify-content: space-between; }
+}
+@media (max-width: 560px) {
+  .day { min-height: 54px; padding: 4px; }
+  .mini { display: none; }
+  .day.has::after { content: ""; display: block; width: 6px; height: 6px; border-radius: 50%;
+    background: var(--accent); margin-top: 6px; }
+  .dow div { padding: 6px 4px; font-size: 10px; }
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1 id="title"></h1>
+  <p class="sub" id="subtitle"></p>
+  <div class="bar">
+    <input id="team" list="teams" placeholder="Pick a team…" autocomplete="off">
+    <datalist id="teams"></datalist>
+    <select id="conf"><option value="">All conferences</option></select>
+    <button id="clear">Clear</button>
+    <button id="ics" class="primary" hidden>Add to my calendar (.ics)</button>
+    <div class="month-nav">
+      <button id="prev" aria-label="Previous month">‹</button>
+      <strong id="month"></strong>
+      <button id="next" aria-label="Next month">›</button>
+    </div>
+  </div>
+  <div class="layout">
+    <div class="cal">
+      <div class="dow"><div>Sun</div><div>Mon</div><div>Tue</div><div>Wed</div><div>Thu</div><div>Fri</div><div>Sat</div></div>
+      <div class="grid" id="grid"></div>
+    </div>
+    <aside class="side" id="side"></aside>
+  </div>
+</div>
+<script>
+const DATA = /*__GAMES__*/null;
+const MONTHS = ["January","February","March","April","May","June","July","August","September","October","November","December"];
+const $ = id => document.getElementById(id);
+
+// [date, home, away, neutral, confGame, homeConf, awayConf, spread, pHome]
+const games = DATA.games.map(g => ({date: g[0], home: g[1], away: g[2], neutral: !!g[3], conf: !!g[4],
+  hc: g[5], ac: g[6], spread: g[7], p: g[8]}));
+const byDate = {};
+games.forEach(g => (byDate[g.date] = byDate[g.date] || []).push(g));
+const teams = Object.keys(DATA.ratings).filter(t => games.some(g => g.home === t || g.away === t)).sort();
+const confs = [...new Set(teams.map(t => DATA.ratings[t][1]).filter(Boolean))].sort();
+
+const state = { team: "", conf: "", month: null, day: null };
+const first = games[0].date, last = games[games.length - 1].date;
+const ym = s => [ +s.slice(0, 4), +s.slice(5, 7) - 1 ];
+state.month = ym(first);
+
+$("title").textContent = DATA.title;
+$("subtitle").textContent = `${games.length.toLocaleString()} games · predictions from preseason ratings · neutral-site games marked`;
+$("teams").innerHTML = teams.map(t => `<option value="${esc(t)}">`).join("");
+$("conf").innerHTML += confs.map(c => `<option>${esc(c)}</option>`).join("");
+
+function esc(s) { return String(s).replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+function iso(y, m, d) { return `${y}-${String(m + 1).padStart(2, "0")}-${String(d).padStart(2, "0")}`; }
+function pretty(s) { const d = new Date(s + "T12:00:00"); return d.toLocaleDateString(undefined, {weekday: "short", month: "short", day: "numeric"}); }
+function pct(p) { return Math.round(p * 100) + "%"; }
+
+function visible(g) {
+  if (state.team && g.home !== state.team && g.away !== state.team) return false;
+  if (state.conf && g.hc !== state.conf && g.ac !== state.conf) return false;
+  return true;
+}
+// how "big" a game is: strong teams, close spread
+function marquee(g) {
+  const r = t => (DATA.ratings[t] || [-20])[0];
+  return r(g.home) + r(g.away) - Math.abs(g.spread);
+}
+function matchup(g) { return g.neutral ? `${g.away} vs ${g.home}` : `${g.away} @ ${g.home}`; }
+function teamView(g, t) {
+  const home = g.home === t, opp = home ? g.away : g.home;
+  const p = home ? g.p : 1 - g.p;
+  const where = g.neutral ? "vs" : home ? "vs" : "@";
+  return { opp, p, where, site: g.neutral ? "Neutral" : home ? "Home" : "Away" };
+}
+function favLine(g) {
+  if (Math.abs(g.spread) < 0.5) return "Pick'em";
+  const fav = g.spread > 0 ? g.home : g.away;
+  return `${fav} −${Math.abs(g.spread).toFixed(1)}`;
+}
+
+function renderGrid() {
+  const [y, m] = state.month;
+  $("month").textContent = `${MONTHS[m]} ${y}`;
+  const startDow = new Date(y, m, 1).getDay();
+  const days = new Date(y, m + 1, 0).getDate();
+  let html = "";
+  for (let i = 0; i < startDow; i++) html += `<div class="day out"></div>`;
+  for (let d = 1; d <= days; d++) {
+    const key = iso(y, m, d);
+    const list = (byDate[key] || []).filter(visible);
+    let inner = "";
+    if (state.team && list.length) {
+      const v = teamView(list[0], state.team);
+      inner = `<div class="mini team">${v.where} ${esc(v.opp)}<br><span class="${v.p >= .5 ? "w" : "l"}">${pct(v.p)}</span> · ${v.site}</div>`;
+    } else if (list.length) {
+      inner = [...list].sort((a, b) => marquee(b) - marquee(a)).slice(0, 3)
+        .map(g => `<div class="mini">${esc(g.away)} ${g.neutral ? "vs" : "@"} ${esc(g.home)}</div>`).join("");
+    }
+    const count = list.length && !state.team ? `<span class="count">${list.length}</span>` : "";
+    html += `<div class="day${list.length ? " has" : ""}${state.day === key ? " sel" : ""}" data-d="${key}">
+      <div class="num"><span>${d}</span>${count}</div>${inner}</div>`;
+  }
+  const cells = startDow + days;
+  for (let i = cells; i < Math.ceil(cells / 7) * 7; i++) html += `<div class="day out"></div>`;
+  $("grid").innerHTML = html;
+  const [fy, fm] = ym(first), [ly, lm] = ym(last);
+  $("prev").disabled = y * 12 + m <= fy * 12 + fm;
+  $("next").disabled = y * 12 + m >= ly * 12 + lm;
+}
+
+function gameRow(g) {
+  const pAway = 1 - g.p;
+  const tags = [g.neutral ? "Neutral site" : `at ${g.home}`, g.conf ? "Conference" : "Non-conference"];
+  return `<div class="game">
+    <div class="row"><span>${esc(g.away)}</span><span>${pct(pAway)}</span></div>
+    <div class="row"><span>${g.neutral ? "vs" : "@"} ${esc(g.home)}</span><span>${pct(g.p)}</span></div>
+    <div class="prob"><span style="width:${pAway * 100}%;background:var(--muted)"></span><span style="width:${g.p * 100}%;background:var(--accent)"></span></div>
+    <div class="row tag" style="margin-top:4px"><span>${tags.join(" · ")}</span><span>${esc(favLine(g))}</span></div>
+  </div>`;
+}
+
+function renderSide() {
+  const side = $("side");
+  if (state.team) {
+    const t = state.team, list = games.filter(g => g.home === t || g.away === t);
+    let w = 0, cw = 0, cg = 0;
+    list.forEach(g => { const p = teamView(g, t).p; w += p; if (g.conf) { cw += p; cg++; } });
+    const [rating, conf] = DATA.ratings[t];
+    side.innerHTML = `<h2>${esc(t)}</h2>
+      <div class="meta">${esc(conf)} · preseason rating ${rating > 0 ? "+" : ""}${rating.toFixed(1)}</div>
+      <div class="stats">
+        <div class="stat"><b>${w.toFixed(1)}–${(list.length - w).toFixed(1)}</b><small>Projected</small></div>
+        <div class="stat"><b>${cw.toFixed(1)}–${(cg - cw).toFixed(1)}</b><small>Conference</small></div>
+        <div class="stat"><b>${list.length}</b><small>Games typed</small></div>
+      </div>` +
+      list.map(g => { const v = teamView(g, t);
+        return `<div class="game"><div class="row"><span>${pretty(g.date)}</span><span class="${v.p >= .5 ? "w" : "l"}">${pct(v.p)}</span></div>
+          <div class="row"><span>${v.where} ${esc(v.opp)}</span><span class="tag">${v.site}${g.conf ? " · Conf" : ""}</span></div></div>`; }).join("");
+    return;
+  }
+  if (state.day) {
+    const list = (byDate[state.day] || []).filter(visible).sort((a, b) => marquee(b) - marquee(a));
+    side.innerHTML = `<h2>${pretty(state.day)}</h2><div class="meta">${list.length} game${list.length === 1 ? "" : "s"}${state.conf ? " · " + esc(state.conf) : ""} · biggest first</div>` +
+      (list.length ? list.map(gameRow).join("") : `<div class="empty">No games this day.</div>`);
+    return;
+  }
+  side.innerHTML = `<h2>How to use</h2><div class="meta">Click a day to see its games, or pick a team for its whole schedule, projected record, and a calendar file you can add to your phone.</div>`;
+}
+
+function render() { renderGrid(); renderSide(); $("ics").hidden = !state.team; }
+
+$("grid").addEventListener("click", e => {
+  const cell = e.target.closest(".day[data-d]"); if (!cell) return;
+  state.day = cell.dataset.d;
+  if (state.team) { state.team = ""; $("team").value = ""; }
+  render();
+});
+$("team").addEventListener("change", e => {
+  const t = teams.find(x => x.toLowerCase() === e.target.value.trim().toLowerCase());
+  state.team = t || ""; if (t) { e.target.value = t; state.day = null; } render();
+});
+$("conf").addEventListener("change", e => { state.conf = e.target.value; render(); });
+$("clear").addEventListener("click", () => { Object.assign(state, {team: "", conf: "", day: null}); $("team").value = ""; $("conf").value = ""; render(); });
+$("prev").addEventListener("click", () => { let [y, m] = state.month; m--; if (m < 0) { m = 11; y--; } state.month = [y, m]; render(); });
+$("next").addEventListener("click", () => { let [y, m] = state.month; m++; if (m > 11) { m = 0; y++; } state.month = [y, m]; render(); });
+
+// .ics export: all-day events, since the schedule file has dates but not tip times
+$("ics").addEventListener("click", () => {
+  const t = state.team, stamp = new Date().toISOString().replace(/[-:]/g, "").slice(0, 15) + "Z";
+  const nextDay = s => { const d = new Date(s + "T12:00:00Z"); d.setUTCDate(d.getUTCDate() + 1); return d.toISOString().slice(0, 10).replace(/-/g, ""); };
+  const clean = s => s.replace(/[,;\\]/g, m => "\\" + m);
+  const lines = ["BEGIN:VCALENDAR", "VERSION:2.0", "PRODID:-//NCAA Season Predictor//Calendar//EN", `X-WR-CALNAME:${clean(t)} schedule`];
+  games.filter(g => g.home === t || g.away === t).forEach((g, i) => {
+    const v = teamView(g, t);
+    lines.push("BEGIN:VEVENT", `UID:${g.date}-${i}-${t.replace(/\W/g, "")}@ncaa-predictor`, `DTSTAMP:${stamp}`,
+      `DTSTART;VALUE=DATE:${g.date.replace(/-/g, "")}`, `DTEND;VALUE=DATE:${nextDay(g.date)}`,
+      `SUMMARY:${clean(`${t} ${v.where} ${v.opp}`)}`,
+      `DESCRIPTION:${clean(`${v.site}${g.conf ? ", conference game" : ""}. Model win chance: ${pct(v.p)}`)}`, "END:VEVENT");
+  });
+  lines.push("END:VCALENDAR");
+  const a = document.createElement("a");
+  a.href = URL.createObjectURL(new Blob([lines.join("\r\n")], {type: "text/calendar"}));
+  a.download = `${t.replace(/\W+/g, "_")}_schedule.ics`;
+  a.click();
+});
+
+render();
+</script>
+</body>
+</html>

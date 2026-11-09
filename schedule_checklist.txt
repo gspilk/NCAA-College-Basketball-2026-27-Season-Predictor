@@ -1,0 +1,314 @@
+2026-27 Schedule Entry Checklist
+Oct 14, 2026 · @Geoffel Spilker
+Enter real conference schedules in the order below: the 5 power conferences first (632 games), then the 5 other multi-bid conferences (448 games), then the rest. A conference switches from generated to real games once every team in it has its full conference schedule entered.
+Checklist
+A conference is complete when every team has at least the games in "Complete at": 16, or a full home-and-away round robin for conferences with 9 or fewer teams. Real conference schedules run 16 to 20 games, so "Games to enter" is the minimum.
+Priority
+Conference
+Code
+Teams
+Complete at (games per team)
+Games to enter (at least)
+Status
+1 Power
+ACC
+acc
+18
+16
+144
+Done
+1 Power
+Big Ten
+big_ten
+18
+16
+144
+Not started
+1 Power
+Big 12
+big_twelve
+16
+16
+128
+Not started
+1 Power
+SEC
+sec
+16
+16
+128
+Not started
+1 Power
+Big East
+big_east
+11
+16
+88
+Not started
+2 Multi-bid
+Atlantic 10
+a_ten
+14
+16
+112
+Not started
+2 Multi-bid
+American
+aac
+13
+16
+104
+Not started
+2 Multi-bid
+Mountain West
+mwc
+10
+16
+80
+Not started
+2 Multi-bid
+WCC
+wcc
+10
+16
+80
+Not started
+2 Multi-bid
+Pac-12
+pac_twelve
+9
+16
+72
+Not started
+3 Auto bid
+America East
+aec
+9
+16
+72
+Not started
+3 Auto bid
+ASUN
+a_sun
+7
+12
+42
+Not started
+3 Auto bid
+Big Sky
+big_sky
+11
+16
+88
+Not started
+3 Auto bid
+Big South
+big_south
+9
+16
+72
+Not started
+3 Auto bid
+Big West
+big_west
+12
+16
+96
+Not started
+3 Auto bid
+CAA
+caa
+13
+16
+104
+Not started
+3 Auto bid
+Conference USA
+cusa
+10
+16
+80
+Not started
+3 Auto bid
+Horizon
+horizon
+12
+16
+96
+Not started
+3 Auto bid
+Ivy League
+ivy
+8
+14
+56
+Not started
+3 Auto bid
+MAAC
+maac
+13
+16
+104
+Not started
+3 Auto bid
+MAC
+mac
+12
+16
+96
+Not started
+3 Auto bid
+MEAC
+meac
+8
+14
+56
+Not started
+3 Auto bid
+Missouri Valley
+mvc
+11
+16
+88
+Not started
+3 Auto bid
+NEC
+nec
+9
+16
+72
+Not started
+3 Auto bid
+Ohio Valley
+ovc
+9
+16
+72
+Not started
+3 Auto bid
+Patriot League
+patriot
+10
+16
+80
+Not started
+3 Auto bid
+SoCon
+southern
+11
+16
+88
+Not started
+3 Auto bid
+Southland
+southland
+12
+16
+96
+Not started
+3 Auto bid
+Summit League
+summit
+8
+14
+56
+Not started
+3 Auto bid
+Sun Belt
+sun_belt
+14
+16
+112
+Not started
+3 Auto bid
+SWAC
+swac
+12
+16
+96
+Not started
+3 Auto bid
+WAC (now UAC)
+wac
+9
+16
+72
+Not started
+That's 32 conferences: the rebuilt Pac-12 adds one. The project gives each an automatic bid, so check whether the Pac-12 has its own bid in 2026-27.
+Teams in each conference
+These are the project's 2026-27 memberships, after your conference changes. Common names also work when you enter games ("Little Rock", "UConn"), and the check step lists any name it doesn't recognize.
+Code
+Teams
+acc
+Boston College, California, Clemson, Duke, Florida St, Georgia Tech, Louisville, Miami FL, NC State, North Carolina, Notre Dame, Pittsburgh, SMU, Stanford, Syracuse, Virginia, Virginia Tech, Wake Forest
+big_ten
+Illinois, Indiana, Iowa, Maryland, Michigan, Michigan St, Minnesota, Nebraska, Northwestern, Ohio St, Oregon, Penn St, Purdue, Rutgers, UCLA, USC, Washington, Wisconsin
+big_twelve
+Arizona, Arizona St, BYU, Baylor, Cincinnati, Colorado, Houston, Iowa St, Kansas, Kansas St, Oklahoma St, TCU, Texas Tech, UCF, Utah, West Virginia
+sec
+Alabama, Arkansas, Auburn, Florida, Georgia, Kentucky, LSU, Mississippi, Mississippi St, Missouri, Oklahoma, South Carolina, Tennessee, Texas, Texas A&M, Vanderbilt
+big_east
+Butler, Connecticut, Creighton, DePaul, Georgetown, Marquette, Providence, Seton Hall, St John's, Villanova, Xavier
+a_ten
+Davidson, Dayton, Duquesne, Fordham, G Washington, George Mason, La Salle, Loyola-Chicago, Rhode Island, Richmond, St Bonaventure, St Joseph's PA, St Louis, VCU
+aac
+Charlotte, East Carolina, FL Atlantic, Memphis, North Texas, Rice, South Florida, Temple, Tulane, Tulsa, UAB, UT San Antonio, Wichita St
+mwc
+Air Force, Grand Canyon, Hawaii, Nevada, New Mexico, San Jose St, UC Davis, UNLV, UTEP, Wyoming
+wcc
+Denver, Loy Marymount, Pacific, Pepperdine, Portland, San Diego, San Francisco, Santa Clara, Seattle, St Mary's CA
+pac_twelve
+Boise St, Colorado St, Fresno St, Gonzaga, Oregon St, San Diego St, Texas St, Utah St, Washington St
+aec
+Binghamton, Bryant, MA Lowell, Maine, NJIT, New Hampshire, SUNY Albany, UMBC, Vermont
+a_sun
+Bellarmine, FGCU, Jacksonville, Lipscomb, North Florida, Queens NC, Stetson (+ West Florida, new to Division I and not in the data)
+big_sky
+E Washington, Idaho, Idaho St, Montana, Montana St, N Colorado, Northern Arizona, Portland St, Southern Utah, Utah Tech, Weber St
+big_south
+Charleston So, Gardner Webb, High Point, Longwood, Presbyterian, Radford, SC Upstate, UNC Asheville, Winthrop
+big_west
+CS Bakersfield, CS Fullerton, CS Northridge, CS Sacramento, Cal Baptist, Cal Poly, Long Beach St, UC Irvine, UC Riverside, UC San Diego, UC Santa Barbara, Utah Valley
+caa
+Campbell, Col Charleston, Drexel, Elon, Hampton, Hofstra, Monmouth NJ, NC A&T, Northeastern, Stony Brook, Towson, UNC Wilmington, William & Mary
+cusa
+Delaware, Florida Intl, Jacksonville St, Kennesaw, Liberty, MTSU, Missouri St, New Mexico St, Sam Houston St, WKU
+horizon
+Cleveland St, Detroit, IUPUI, N Illinois, N Kentucky, Oakland, PFW, Robert Morris, WI Green Bay, WI Milwaukee, Wright St, Youngstown St
+ivy
+Brown, Columbia, Cornell, Dartmouth, Harvard, Penn, Princeton, Yale
+maac
+Canisius, Fairfield, Iona, Manhattan, Marist, Merrimack, Mt St Mary's, Niagara, Quinnipiac, Rider, Sacred Heart, Siena, St Peter's
+mac
+Akron, Ball St, Bowling Green, Buffalo, C Michigan, E Michigan, Kent, Massachusetts, Miami OH, Ohio, Toledo, W Michigan
+meac
+Coppin St, Delaware St, Howard, MD E Shore, Morgan St, NC Central, Norfolk St, S Carolina St
+mvc
+Belmont, Bradley, Drake, Evansville, IL Chicago, Illinois St, Indiana St, Murray St, Northern Iowa, S Illinois, Valparaiso
+nec
+Central Conn, Chicago St, F Dickinson, LIU Brooklyn, Le Moyne, Mercyhurst, New Haven, Stonehill, Wagner
+ovc
+E Illinois, Lindenwood, Morehead St, SE Missouri St, SIUE, Southern Indiana, TN Martin, Tennessee St, W Illinois
+patriot
+American Univ, Army, Boston Univ, Bucknell, Colgate, Holy Cross, Lafayette, Lehigh, Loyola MD, Navy
+southern
+Chattanooga, Citadel, ETSU, Furman, Mercer, Samford, Tennessee Tech, UNC Greensboro, VMI, W Carolina, Wofford
+southland
+East Texas A&M, Houston Chr, Incarnate Word, Lamar, McNeese St, New Orleans, Nicholls St, Northwestern LA, SE Louisiana, SF Austin, TAM C. Christi, UTRGV
+summit
+Missouri KC, N Dakota St, NE Omaha, North Dakota, Oral Roberts, S Dakota St, South Dakota, St Thomas MN
+sun_belt
+Appalachian St, Arkansas St, Coastal Car, Ga Southern, Georgia St, James Madison, Louisiana, Louisiana Tech, Marshall, Old Dominion, South Alabama, Southern Miss, Troy, ULM
+swac
+Alabama A&M, Alabama St, Alcorn St, Ark Pine Bluff, Bethune-Cookman, Florida A&M, Grambling, Jackson St, MS Valley St, Prairie View, Southern Univ, TX Southern
+wac
+Abilene Chr, Ark Little Rock, Austin Peay, Cent Arkansas, E Kentucky, North Alabama, Tarleton St, UT Arlington, West Georgia
+How to enter games
+1. Find the conference's full schedule on its official website (often one page or PDF). Copy it by hand or use the site's download; don't write a scraper.
+2. Open data\schedule\M_schedule_2027.csv in Excel and add one row per game. Each game once is enough; a game listed twice is only counted once.
+3. Save as CSV, then run python schedule.py. It reports how many real games it found and lists any team names it didn't recognize.
+4. Set that conference's Status to Done once the check shows no unrecognized names.
+Date,Home,Away,Neutral
+2027-01-03,Duke,North Carolina,N
+2026-11-27,Gonzaga,Kentucky,Y
+Dates are YYYY-MM-DD. Neutral is Y for a neutral-site game, otherwise N. Non-conference games can go in the same file at any time; teams without them get generated ones.
