@@ -50,6 +50,7 @@ python schedule.py                 # build the 2026-27 schedule
 python season.py                   # regular-season projections
 python season.py --backtest 2026   # test the simulator on 2025-26
 python postseason.py               # conference tournaments + NCAA Tournament odds
+python calendar_view.py            # build the season calendar (HTML) with win probabilities
 ```
 
 Add `--gender W` to any script for the women's season.
