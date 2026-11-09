@@ -1,6 +1,6 @@
 # NCAA College Basketball 2026–27 Season Predictor
 
-> **Status: work in progress.** The rating, preseason, bracket, and simulation code is built. I'm currently entering the 2026–27 schedules conference by conference, with the goal of publishing preseason projections before the season tips off in November 2026.
+# Status: work in progress. The rating, preseason, bracket, and simulation code is built and validated. I’m entering the 2026–27 schedules conference by conference; next is tracking the projections against real results during the season.
 
 A Python project that projects the 2026–27 NCAA Division I men's and women's basketball seasons, from preseason team ratings through the regular season, conference tournaments, tournament selection, and the NCAA Tournament. Every step runs inside the same simulated season, so a team that's better than expected in November stays better in March, the way real seasons work.
 
