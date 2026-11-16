@@ -253,7 +253,7 @@ def read_real_schedule(data: dict, conferences: pd.Series, season: int, gender: 
     Dates can leave off the year (11-23). The same game entered from both teams'
     sides is counted once; if the two rows disagree about the location, you're warned.
     """
-    path = path or os.path.join(SCHEDULE_DIR, f"{gender}_schedule_{season}.csv")
+    path = path or os.path.join(SCHEDULE_DIR, f"{gender}_schedule_{season}_clean.csv")
     cols = ["HomeID", "AwayID", "Neutral", "ConfGame", "DayNum"]
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
