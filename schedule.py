@@ -51,7 +51,7 @@ ROOT = os.path.dirname(os.path.abspath(__file__))
 SCHEDULE_DIR = os.path.join(ROOT, "data", "schedule")
 
 # Tuned so a generated 2025-26 schedule matches the real one (python schedule.py --check 2026)
-TOTAL_GAMES = 30              # Division I games per team before conference tournaments
+TOTAL_GAMES = 24             # Division I games per team before conference tournaments
 CONF_GAMES_LARGE = 20         # conference games for big conferences (generated schedules)
 MIN_COMPLETE_CONF_GAMES = 16  # a real conference slate counts as complete at this many games per team
 NEUTRAL_SHARE = 0.33          # share of similar-strength non-conference games at neutral sites
