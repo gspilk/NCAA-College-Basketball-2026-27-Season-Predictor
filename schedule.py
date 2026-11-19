@@ -323,7 +323,7 @@ def read_real_schedule(data: dict, conferences: pd.Series, season: int, gender: 
     raw = raw.drop_duplicates(subset=["_date", "_pair"])
 
     raw["ConfGame"] = raw["HomeID"].map(conferences).eq(raw["AwayID"].map(conferences)) & \
-        raw["HomeID"].map(conferences).notna()
+        raw["HomeID"].map(conferences).notna() & ~raw["Neutral"]
     start = raw["_date"].min()
     raw["DayNum"] = ((raw["_date"] - start).dt.days + 7).astype(int)
     print(f"  [ok] {len(raw)} real games for "
