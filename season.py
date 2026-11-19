@@ -58,6 +58,9 @@ def simulate_season(schedule: pd.DataFrame, preseason: pd.Series, conferences: p
     a = sched["AwayID"].map(idx).to_numpy()
     edge = np.where(sched["Neutral"].astype(bool), 0.0, home_court)
     conf_game = sched["ConfGame"].astype(bool).to_numpy()
+    has_scores = "HomeScore" in sched.columns
+    done = sched["HomeScore"].notna().to_numpy() if has_scores else np.zeros(len(sched), bool)
+    home_won = (sched["HomeScore"] > sched["AwayScore"]).to_numpy() if has_scores else np.zeros(len(sched), bool)
     n_t, n_g = len(teams), len(sched)
     rng = np.random.default_rng(seed)
 
@@ -77,6 +80,7 @@ def simulate_season(schedule: pd.DataFrame, preseason: pd.Series, conferences: p
         k = s.stop - s.start
         margin = strength[s][:, h] - strength[s][:, a] + edge + rng.normal(0, game_sd, (k, n_g))
         hw = (margin > 0).astype(np.float32)
+        hw[:, done] = home_won[done]
         aw = 1.0 - hw
         wins[s] = hw @ H + aw @ A
         losses[s] = aw @ H + hw @ A
