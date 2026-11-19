@@ -188,7 +188,7 @@ def generate_schedule(conferences: pd.Series, strength: pd.Series, season: int,
     rng = np.random.default_rng(seed)
     rows = []
     fixed = fixed if fixed is not None else pd.DataFrame(
-        columns=["HomeID", "AwayID", "Neutral", "ConfGame", "DayNum"])
+        columns=["HomeID", "AwayID", "Neutral", "ConfGame", "DayNum", "HomeScore", "AwayScore"])
 
     # conference games: keep a conference's real slate only if it's complete
     for conf, members in conferences.groupby(conferences):
@@ -221,7 +221,7 @@ def generate_schedule(conferences: pd.Series, strength: pd.Series, season: int,
     out = pd.concat([real, gen], ignore_index=True)
     out.insert(0, "Season", season)
     return out.sort_values("DayNum").reset_index(drop=True)[
-        ["Season", "DayNum", "HomeID", "AwayID", "Neutral", "ConfGame", "Source"]]
+            ["Season", "DayNum", "HomeID", "AwayID", "Neutral", "ConfGame", "Source", "HomeScore", "AwayScore"]]
 
 
 # ---------------------------------------------------------------------------
@@ -254,7 +254,7 @@ def read_real_schedule(data: dict, conferences: pd.Series, season: int, gender: 
     sides is counted once; if the two rows disagree about the location, you're warned.
     """
     path = path or os.path.join(SCHEDULE_DIR, f"{gender}_schedule_{season}_clean.csv")
-    cols = ["HomeID", "AwayID", "Neutral", "ConfGame", "DayNum"]
+    cols = ["HomeID", "AwayID", "Neutral", "ConfGame", "DayNum", "HomeScore", "AwayScore"]
     if not os.path.exists(path):
         os.makedirs(os.path.dirname(path), exist_ok=True)
         pd.DataFrame(columns=["Date", "Team", "Opponent", "Site"]).to_csv(path, index=False)
@@ -290,6 +290,8 @@ def read_real_schedule(data: dict, conferences: pd.Series, season: int, gender: 
         raw["HomeID"] = raw["Home"].map(ident)
         raw["AwayID"] = raw["Away"].map(ident)
         raw["Neutral"] = raw.get("Neutral", "N").astype(str).str.strip().str.upper().str.startswith("Y")
+        raw["HomeScore"] = pd.to_numeric(raw["Home_Score"], errors="coerce")
+        raw["AwayScore"] = pd.to_numeric(raw["Away_Score"], errors="coerce")
         unknown_opp = sorted(set(raw.loc[raw["HomeID"].isna(), "Home"].dropna())
                              | set(raw.loc[raw["AwayID"].isna(), "Away"].dropna()))
     else:
