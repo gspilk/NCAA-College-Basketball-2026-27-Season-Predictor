@@ -108,19 +108,25 @@ def conference_standings(cwins, closses, strength, conf) -> np.ndarray:
     return rank
 
 
-def summarize(res: dict, names: pd.Series, preseason: pd.Series) -> pd.DataFrame:
+def summarize(res: dict, names: pd.Series, preseason: pd.Series,
+              current: pd.Series = None) -> pd.DataFrame:
+    current = preseason if current is None else current
+    pre = preseason.reindex(res["teams"])
+    now = current.reindex(res["teams"])
     w, l = res["wins"], res["losses"]
     out = pd.DataFrame({
         "TeamName": [names.get(t, t) for t in res["teams"]],
         "Conf": res["conf"],
-        "Preseason": preseason.reindex(res["teams"]).round(2).to_numpy(),
+        "Preseason": pre.round(2).to_numpy(),
+        "Rating": now.round(2).to_numpy(),
+        "Change": (now - pre).round(2).to_numpy(),
         "W": w.mean(0).round(1), "L": l.mean(0).round(1),
         "ConfW": res["conf_wins"].mean(0).round(1), "ConfL": res["conf_losses"].mean(0).round(1),
         "W_10th": np.percentile(w, 10, axis=0).astype(int),
         "W_90th": np.percentile(w, 90, axis=0).astype(int),
         "ConfTitle": (res["conf_rank"] == 1).mean(0).round(3),
     }, index=pd.Index(res["teams"], name="TeamID"))
-    return out.sort_values("Preseason", ascending=False)
+    return out.sort_values("Rating", ascending=False)
 
 
 # ---------------------------------------------------------------------------
@@ -224,10 +230,13 @@ if __name__ == "__main__":
         backtest(data, args.backtest, min(args.sims, 5000), args.seed)
     else:
         season, table, info, conf, sched = load_inputs(data, args.gender, args.seed)
-        res = simulate_season(sched, table["Preseason"], conf, info["team_sd"],
+        from ratings import update_ratings
+        played = sched[sched["HomeScore"].notna()]
+        rating, sd = update_ratings(table["Preseason"], played, info["team_sd"], info["home_court"])
+        res = simulate_season(sched, rating, conf, sd.to_numpy(),
                               info["home_court"], args.sims, seed=args.seed)
         names = data["teams"].set_index("TeamID")["TeamName"]
-        summary = summarize(res, names, table["Preseason"])
+        summary = summarize(res, names, table["Preseason"], rating)
         real = (sched["Source"] == "real").sum()
         label = "Men's" if args.gender == "M" else "Women's"
         print(f"\n{label} {season - 1}-{str(season)[2:]} regular season -- {args.sims:,} simulations "
@@ -237,8 +246,7 @@ if __name__ == "__main__":
         show["Conf rec"] = show["ConfW"].map("{:.1f}".format) + "-" + show["ConfL"].map("{:.1f}".format)
         show["80% range"] = show["W_10th"].astype(str) + "-" + show["W_90th"].astype(str) + " W"
         show["Conf title"] = (show["ConfTitle"] * 100).map("{:.0f}%".format)
-        print(show[["TeamName", "Conf", "Preseason", "Record", "80% range", "Conf rec", "Conf title"]]
-              .to_string(index=False))
+        print(show[["TeamName", "Conf", "Preseason", "Rating", "Change", "Record", "80% range", "Conf rec", "Conf title"]].to_string(index=False))
         os.makedirs(OUT_DIR, exist_ok=True)
         out = os.path.join(OUT_DIR, f"{args.gender}_season_{season}.csv")
         summary.to_csv(out)

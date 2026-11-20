@@ -101,6 +101,34 @@ def win_prob(r_team: float, r_opp: float, loc: int = 0, home_court: float = 0.0,
     """Probability team beats opp."""
     return _norm_cdf(predict_margin(r_team, r_opp, loc, home_court) / sd)
 
+def update_ratings(preseason: pd.Series, games: pd.DataFrame, team_sd: float,
+                   home_court: float, game_sd: float = GAME_SD):
+    """
+    This season's ratings: each team starts at its preseason rating and moves
+    toward what its results say -- the more games, the further it moves.
+    games: played games (HomeID, AwayID, Neutral, HomeScore, AwayScore).
+    Returns (rating, sd): both indexed by TeamID; sd = how unsure we still are.
+    """
+    teams = preseason.index.to_numpy()
+    idx = {t: i for i, t in enumerate(teams)}
+    g = games[games["HomeID"].isin(idx) & games["AwayID"].isin(idx)]
+    h = g["HomeID"].map(idx).to_numpy()
+    a = g["AwayID"].map(idx).to_numpy()
+    loc = np.where(g["Neutral"].astype(bool), 0.0, 1.0)
+    margin = (g["HomeScore"] - g["AwayScore"]).to_numpy(dtype=float)
+
+    rows = np.arange(len(g))
+    X = np.zeros((len(g), len(teams)))
+    X[rows, h] = 1.0
+    X[rows, a] = -1.0
+
+    pull = (game_sd / team_sd) ** 2
+    A = X.T @ X + pull * np.eye(len(teams))
+    b = X.T @ (margin - home_court * loc) + pull * preseason.to_numpy(dtype=float)
+    rating = np.linalg.solve(A, b)
+    sd = game_sd * np.sqrt(np.diag(np.linalg.inv(A)))
+    return pd.Series(rating, index=teams, name="Rating"), pd.Series(sd, index=teams, name="SD")
+
 
 # ---------------------------------------------------------------------------
 # Season ratings table
