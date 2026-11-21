@@ -311,7 +311,10 @@ def run(data: dict, gender: str, sims: int, seed: int = 0, refit: bool = False):
     from season import load_inputs, simulate_season
     season, table, info, conf, sched = load_inputs(data, gender, seed)
     committee = committee_settings(data, gender, refit)
-    res = simulate_season(sched, table["Preseason"], conf, info["team_sd"], info["home_court"],
+    from ratings import update_ratings
+    played = sched[sched["HomeScore"].notna()]
+    rating, sd = update_ratings(table["Preseason"], played, info["team_sd"], info["home_court"])
+    res = simulate_season(sched, rating, conf, sd.to_numpy(), info["home_court"],
                           sims, seed=seed)
     rng = np.random.default_rng(seed + 1)
     champs = conference_tournaments(res, rng)

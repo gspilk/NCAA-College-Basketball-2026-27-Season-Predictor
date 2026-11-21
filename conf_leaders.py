@@ -19,5 +19,13 @@ out = pd.DataFrame({
     "Runner-up": second["TeamName"],
     "R-up %": (second["ConfTitle"] * 100).round().astype(int).astype(str) + "%",
 }).sort_index()
+
+odds = pd.read_csv(os.path.join(root, "data", "sims", "M_championship_odds_2027.csv"), index_col="TeamID")
+t = odds.sort_values("AutoBid", ascending=False)
+t["Rank"] = t.groupby("Conf").cumcount() + 1
+auto1 = t[t["Rank"] == 1].set_index("Conf")
+out["Auto bid"] = auto1["Team"]
+out["Bid %"] = (auto1["AutoBid"] * 100).round().astype(int).astype(str) + "%"
+
 print(out.to_string())
 print(len(out), "conferences")
