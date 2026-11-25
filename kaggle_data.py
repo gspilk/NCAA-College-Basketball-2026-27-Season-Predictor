@@ -30,7 +30,7 @@ import os
 import pandas as pd
 
 DATA_DIR = os.path.join(os.path.dirname(os.path.abspath(__file__)), "data", "kaggle")
-
+NEW_TEAMS_CSV = os.path.join(os.path.dirname(os.path.abspath(__file__)), "new_teams.csv")
 
 def _read(name: str, required: bool = True) -> pd.DataFrame:
     path = os.path.join(DATA_DIR, name)
@@ -42,10 +42,19 @@ def _read(name: str, required: bool = True) -> pd.DataFrame:
         return pd.DataFrame()
     return pd.read_csv(path)
 
-
 def load_teams(gender: str = "M") -> pd.DataFrame:
-    return _read(f"{gender}Teams.csv")[["TeamID", "TeamName"]]
-
+    """Kaggle's teams plus any teams new to Division I listed in new_teams.csv."""
+    teams = _read(f"{gender}Teams.csv")[["TeamID", "TeamName"]]
+    if os.path.exists(NEW_TEAMS_CSV):
+        new = pd.read_csv(NEW_TEAMS_CSV)
+        new = new[new["Gender"].str.strip().str.upper() == gender][["TeamID", "TeamName"]]
+        clash = new[new["TeamID"].isin(teams["TeamID"])]
+        if len(clash):
+            print(f"  [warn] new_teams.csv: TeamID already used by Kaggle -- skipped: "
+                  f"{', '.join(clash['TeamName'])}")
+            new = new[~new["TeamID"].isin(teams["TeamID"])]
+        teams = pd.concat([teams, new], ignore_index=True)
+    return teams
 
 def load_games(gender: str = "M") -> pd.DataFrame:
     """Regular season + NCAA tournament games, one row per game."""

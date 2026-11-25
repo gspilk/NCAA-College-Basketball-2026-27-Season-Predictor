@@ -112,6 +112,24 @@ def conference_tournaments(res: dict, rng) -> np.ndarray:
         champs[:, ci] = field[:, 0]
     res["conf_list"] = confs
     return champs
+def replace_ineligible_champs(res: dict, champs: np.ndarray, ineligible: set) -> np.ndarray:
+    """If an ineligible team wins its conference tournament, the automatic bid goes
+    to the conference's best eligible team in the regular-season standings
+    (e.g. 2022 ASUN: Bellarmine won the tournament, Jacksonville State got the bid)."""
+    teams, conf, rank = res["teams"], res["conf"], res["conf_rank"]
+    eligible = ~np.isin(teams, list(ineligible))
+    if eligible.all():
+        return champs
+    champs = champs.copy()
+    for ci, c in enumerate(res["conf_list"]):
+        cols = np.where(conf == c)[0]
+        ok_cols = cols[eligible[cols]]
+        if len(ok_cols) in (0, len(cols)):        # nobody ineligible in this conference
+            continue
+        best = ok_cols[np.argmin(rank[:, ok_cols], axis=1)]   # best regular-season finish
+        bad = ~eligible[champs[:, ci]]
+        champs[bad, ci] = best[bad]
+    return champs
 
 
 # ---------------------------------------------------------------------------
@@ -228,7 +246,7 @@ def select_field(res: dict, champs: np.ndarray, C: float, ineligible: set, rng):
     eligible = ~np.isin(teams, list(ineligible))
     auto = np.zeros((sims, n_t), bool)
     auto[np.arange(sims)[:, None], champs] = True
-    auto &= eligible[None, :]               # an ineligible champion's bid is simply lost here
+    auto &= eligible[None, :]               # safety net: champs were already replaced above
     n_at_large = FIELD_SIZE - auto.sum(axis=1)
 
     pool = np.where(auto | ~eligible[None, :], -np.inf, score)
@@ -318,11 +336,12 @@ def run(data: dict, gender: str, sims: int, seed: int = 0, refit: bool = False):
                           sims, seed=seed)
     rng = np.random.default_rng(seed + 1)
     champs = conference_tournaments(res, rng)
-    score, forder, al_flag = select_field(res, champs, committee["C"], ineligible_ids(data), rng)
+    ineligible = ineligible_ids(data)
+    champs = replace_ineligible_champs(res, champs, ineligible)
+    score, forder, al_flag = select_field(res, champs, committee["C"], ineligible, rng)
     pos_a, pos_b, line_of_pos = build_brackets(forder, al_flag, score)
     reach = play_tournament(pos_a, pos_b, line_of_pos, res["strength"], rng,
                             info["home_court"], HOST_LINES[gender], len(res["teams"]))
-
     teams = res["teams"]
     n_t = len(teams)
     in_field = np.zeros(n_t)
